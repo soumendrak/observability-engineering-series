@@ -54,6 +54,7 @@ Following a request across service boundaries — from single-service tracing to
 - **Key Concepts:**
     - W3C Trace Context and the `traceparent` header.
     - Automatic context propagation via `httpx` instrumentation.
+    - Manual context propagation with explicit inject/extract flow.
     - Two-service setup: API Gateway → Order Service.
     - Custom spans for fine-grained visibility across services.
 
