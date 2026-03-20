@@ -1,0 +1,52 @@
+# docker-compose.yml — Production-ready (Chapter 8 Part 3)
+#
+# Differences from MVP:
+#   • Pinned image versions (no :latest)
+#   • Health check on the Collector (port 13133)
+#   • depends_on with health-check conditions
+#   • Internal metrics port (8888) exposed for Collector self-observability
+#   • Persistent queue storage volume (optional, uncomment for WAL durability)
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config", "/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+      # Uncomment for persistent queue (WAL) — survives Collector restarts:
+      # - otelcol-storage:/var/lib/otelcol/storage
+    ports:
+      - "4317:4317"    # OTLP gRPC (your apps send here)
+      - "4318:4318"    # OTLP HTTP
+      - "8889:8889"    # Prometheus scrape endpoint (app metrics)
+      - "8888:8888"    # Collector internal metrics
+      - "13133:13133"  # Health check endpoint
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    ports:
+      - "16686:16686"  # Jaeger UI
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+
+# Uncomment for persistent queue volume:
+# volumes:
+#   otelcol-storage:

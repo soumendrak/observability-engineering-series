@@ -1,0 +1,57 @@
+# otel-collector-config.yaml — MVP (Chapter 8 Part 2)
+#
+# Minimum viable Collector config for local development.
+# Accepts OTLP from your Python services, routes traces to Jaeger,
+# metrics to Prometheus, and logs to stdout (debug exporter).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    # Prevent the Collector from using too much memory.
+    # Returns backpressure to the SDK, which queues and retries.
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  batch:
+    # Buffer telemetry and send in batches (reduces network overhead).
+    # 5s timeout keeps the local demo predictable; production uses 200ms.
+    send_batch_size: 1024
+    timeout: 5s
+
+exporters:
+  otlp_grpc/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp_grpc/jaeger, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]

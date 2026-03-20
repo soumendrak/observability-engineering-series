@@ -1,0 +1,102 @@
+# otel-collector-config.yaml — Production-ready (Chapter 8 Part 3)
+#
+# Differences from MVP:
+#   • health_check extension for liveness probes
+#   • Self-observability (internal metrics at :8888 + log level config)
+#   • attributes/tag_env processor — stamps deployment.environment on all spans
+#   • filter/health_checks processor — drops noisy health-check spans
+#   • sending_queue + retry_on_failure on the Jaeger exporter
+#   • Production-tuned batch processor (timeout: 200ms)
+#   • debug exporter at basic verbosity (remove entirely for high-throughput)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    # Circuit breaker: returns backpressure to the SDK when memory is high.
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  attributes/tag_env:
+    # Stamp every span with a deployment environment — no app code change.
+    # Uses the OTel semantic convention key: deployment.environment
+    actions:
+      - key: deployment.environment
+        value: dev
+        action: insert
+
+  filter/health_checks:
+    # Drop noisy health-check spans before they reach any exporter.
+    # Saves storage, reduces Jaeger index size, declutters trace search.
+    # NOTE: http.target is the older semconv key; url.path is the newer one.
+    #       Include both if your SDK version uses the newer conventions.
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.target"] == "/healthz"'
+        - 'attributes["http.target"] == "/readyz"'
+        - 'attributes["http.target"] == "/health"'
+        - 'attributes["url.path"] == "/healthz"'
+        - 'attributes["url.path"] == "/readyz"'
+        - 'attributes["url.path"] == "/health"'
+
+  batch:
+    # Production-tuned: 200ms timeout for near-real-time trace visibility.
+    send_batch_size: 2048
+    timeout: 200ms
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+    sending_queue:
+      queue_size: 5000             # Buffer up to 5000 batches (default: 1000)
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 10m        # Retry for 10 min instead of default 5
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+
+  debug:
+    verbosity: basic               # Minimal output; remove for high-throughput
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  telemetry:
+    metrics:
+      level: detailed              # Exposes Collector metrics at :8888/metrics
+    logs:
+      level: info                  # Change to debug for verbose startup output
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/health_checks, attributes/tag_env, batch]
+      exporters: [otlp/jaeger]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]           # Replace with loki exporter when log storage is added

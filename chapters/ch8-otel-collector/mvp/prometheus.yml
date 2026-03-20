@@ -1,0 +1,12 @@
+# prometheus.yml — MVP (Chapter 8 Part 2)
+#
+# Prometheus now scrapes the OTel Collector's exporter endpoint,
+# NOT your Python apps directly. Your apps push OTLP to the Collector.
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "otel-collector"
+    static_configs:
+      - targets: ["otel-collector:8889"]
