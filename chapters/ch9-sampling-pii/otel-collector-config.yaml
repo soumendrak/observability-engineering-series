@@ -1,0 +1,120 @@
+# otel-collector-config.yaml — Chapter 9: Sampling & PII Scrubbing
+#
+# Builds on Chapter 8. Adds:
+#   • tail_sampling processor — keeps 100% errors, 100% slow, 5% normal
+#   • transform processor — scrubs llm.prompt, llm.completion, emails, SSNs
+#   • Processor order: memory_limiter → transform → tail_sampling → batch
+#
+# The transform processor runs BEFORE tail_sampling so PII is scrubbed
+# even for traces that are eventually dropped. This ensures sensitive data
+# never appears in debug logs or buffered memory.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          # Redact full LLM prompts — keep only "REDACTED" for privacy
+          - replace_pattern(attributes["llm.prompt"], ".*", "REDACTED")
+            where attributes["llm.prompt"] != nil
+
+          # Redact full LLM completions
+          - replace_pattern(attributes["llm.completion"], ".*", "REDACTED")
+            where attributes["llm.completion"] != nil
+
+          # Scrub email addresses from user queries
+          - replace_pattern(attributes["user.query"], "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[EMAIL_REDACTED]")
+            where attributes["user.query"] != nil
+
+          # Scrub SSN patterns (XXX-XX-XXXX) from user queries
+          - replace_pattern(attributes["user.query"], "\\d{3}-\\d{2}-\\d{4}", "[SSN_REDACTED]")
+            where attributes["user.query"] != nil
+
+  tail_sampling:
+    # How long to wait for a trace to complete before making a decision.
+    # Must be long enough for all spans in a distributed trace to arrive.
+    decision_wait: 10s
+    # Maximum number of traces held in memory while waiting for decision.
+    num_traces: 50000
+    # Expected new traces per second (helps pre-allocate memory).
+    expected_new_traces_per_sec: 100
+    policies:
+      # Policy 1: Always keep error traces — this is the whole point.
+      - name: errors-policy
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+
+      # Policy 2: Always keep slow traces (> 2 seconds).
+      # Applied across all spans in the trace.
+      - name: latency-policy
+        type: latency
+        latency:
+          threshold_ms: 2000
+
+      # Policy 3: Keep 5% of remaining (successful, fast) traces
+      # for baseline visibility. Adjust percentage based on volume.
+      - name: probabilistic-policy
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 5
+
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  telemetry:
+    metrics:
+      level: detailed
+    logs:
+      level: info
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      # Order matters: scrub PII first, then sample, then batch.
+      processors: [memory_limiter, transform, tail_sampling, batch]
+      exporters: [otlp/jaeger, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
