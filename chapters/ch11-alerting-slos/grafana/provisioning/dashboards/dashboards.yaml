@@ -1,0 +1,16 @@
+# dashboards.yaml — Chapter 11: Alerting & SLOs
+#
+# Dashboard loader config. Identical to Chapter 10.
+
+apiVersion: 1
+
+providers:
+  - name: "default"
+    orgId: 1
+    folder: "Observability Series"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

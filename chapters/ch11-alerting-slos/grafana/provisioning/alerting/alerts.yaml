@@ -1,0 +1,231 @@
+# alerts.yaml — Chapter 11: Alerting & SLOs
+#
+# Grafana-provisioned alert rules for symptom-based alerting.
+# These fire on user-visible symptoms (error rate, latency, traffic drop)
+# rather than causes (CPU, memory).
+#
+# Also includes an error-budget burn rate alert using multi-window approach
+# from the Google SRE Workbook.
+
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: service-health
+    folder: Observability Series
+    interval: 1m
+    rules:
+      # ─── Alert 1: High Error Rate ──────────────────
+      # Fires when > 5% of requests return 5xx for 5 minutes.
+      - uid: high-error-rate
+        title: "High Error Rate"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: >
+                sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[5m]))
+                /
+                sum(rate(otel_gateway_requests_total[5m]))
+              instant: false
+              range: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]  # > 5% error rate
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate is above 5%"
+          description: "API Gateway error rate has been above 5% for 5 minutes."
+          runbook: "https://wiki.internal/runbooks/high-error-rate"
+
+      # ─── Alert 2: High Latency ─────────────────────
+      # Fires when P99 latency exceeds 3 seconds for 10 minutes.
+      - uid: high-latency
+        title: "P99 Latency Above Threshold"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: >
+                histogram_quantile(0.99,
+                  sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le)
+                )
+              instant: false
+              range: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [3000]  # > 3000ms P99
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency above 3 seconds"
+          description: "API Gateway P99 latency has been above 3000ms for 10 minutes."
+          runbook: "https://wiki.internal/runbooks/high-latency"
+
+      # ─── Alert 3: Traffic Drop ─────────────────────
+      # Fires when current request rate drops below 50% of the rate 1 hour ago.
+      - uid: traffic-drop
+        title: "Request Rate Dropped Significantly"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: >
+                sum(rate(otel_gateway_requests_total[5m]))
+                /
+                sum(rate(otel_gateway_requests_total[5m] offset 1h))
+              instant: false
+              range: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [0.5]  # Current rate < 50% of rate 1 hour ago
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request rate dropped by more than 50%"
+          description: "Current request rate is below 50% of the rate 1 hour ago."
+          runbook: "https://wiki.internal/runbooks/traffic-drop"
+
+      # ─── Alert 4: Error Budget Burn Rate ───────────
+      # Multi-window burn rate alert (Google SRE Workbook pattern).
+      # Fires when both 1h and 5m windows show burn rate > 14.4x,
+      # meaning the 30-day error budget will be exhausted in ~2 days.
+      - uid: error-budget-burn
+        title: "Error Budget Burn Rate Critical"
+        condition: D
+        data:
+          # Long window burn rate (1 hour)
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: >
+                (sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[1h]))
+                / sum(rate(otel_gateway_requests_total[1h])))
+                / 0.01
+              instant: false
+              range: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          # Short window burn rate (5 minutes)
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: >
+                (sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[5m]))
+                / sum(rate(otel_gateway_requests_total[5m])))
+                / 0.01
+              instant: false
+              range: true
+              refId: C
+          - refId: D
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: "$B > 14.4 && $C > 14.4"
+              refId: D
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget burning at critical rate"
+          description: >
+            Both 1h and 5m burn rate windows exceeded 14.4x.
+            At this rate the 30-day error budget will be exhausted in under 2 days.
+            Open the RED dashboard: http://localhost:3000/d/red-dashboard
+          runbook: "https://wiki.internal/runbooks/error-budget-burn"

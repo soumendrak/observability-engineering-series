@@ -1,0 +1,65 @@
+# prometheus-alert-rules.yml — Chapter 11: Alerting & SLOs
+#
+# Prometheus-native alert rules (for promtool testing).
+# These are the same alert conditions as alerts.yaml, but in Prometheus
+# rule format so they can be unit-tested with `promtool test rules`.
+#
+# Note: Grafana uses its own provisioning format (alerts.yaml).
+# This file is for testing and can also be loaded by Prometheus directly.
+
+groups:
+  - name: service-health
+    rules:
+      - alert: HighErrorRate
+        expr: >
+          sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[5m]))
+          / sum(rate(otel_gateway_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate is above 5%"
+          runbook: "https://wiki.internal/runbooks/high-error-rate"
+
+      - alert: HighLatency
+        expr: >
+          histogram_quantile(0.99,
+            sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le)
+          ) > 3000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency above 3 seconds"
+          runbook: "https://wiki.internal/runbooks/high-latency"
+
+      - alert: TrafficDrop
+        expr: >
+          sum(rate(otel_gateway_requests_total[5m]))
+          / sum(rate(otel_gateway_requests_total[5m] offset 1h)) < 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request rate dropped by more than 50%"
+          runbook: "https://wiki.internal/runbooks/traffic-drop"
+
+      - alert: ErrorBudgetBurnCritical
+        expr: >
+          (
+            (sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[1h]))
+            / sum(rate(otel_gateway_requests_total[1h])))
+            / 0.01
+          ) > 14.4
+          and
+          (
+            (sum(rate(otel_gateway_requests_total{http_status_code=~"5.."}[5m]))
+            / sum(rate(otel_gateway_requests_total[5m])))
+            / 0.01
+          ) > 14.4
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget burning at critical rate (>14.4x)"
+          runbook: "https://wiki.internal/runbooks/error-budget-burn"

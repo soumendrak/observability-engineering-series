@@ -1,0 +1,149 @@
+{
+    "title": "Service RED Dashboard",
+    "uid": "red-dashboard",
+    "tags": ["observability", "RED"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "title": "Error Rate %",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(rate(otel_gateway_requests_total{http_status_code=~\"5..\"}[5m])) / sum(rate(otel_gateway_requests_total[5m])) * 100",
+            "legendFormat": "Error %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1 },
+                { "color": "red", "value": 5 }
+              ]
+            },
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "title": "Request Rate",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(rate(otel_gateway_requests_total[5m]))",
+            "legendFormat": "req/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "reqps" }
+        }
+      },
+      {
+        "title": "P99 Latency",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1000 },
+                { "color": "red", "value": 3000 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Error Budget Burn Rate (1h)",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+        "targets": [
+          {
+            "expr": "(sum(rate(otel_gateway_requests_total{http_status_code=~\"5..\"}[1h])) / sum(rate(otel_gateway_requests_total[1h]))) / 0.01",
+            "legendFormat": "Burn Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "x",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 5 },
+                { "color": "red", "value": 14.4 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Request Rate by Route",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(otel_gateway_requests_total[5m])) by (http_route)",
+            "legendFormat": "{{ http_route }}"
+          }
+        ]
+      },
+      {
+        "title": "Latency Percentiles",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "ms" }
+        }
+      },
+      {
+        "title": "Latency Heatmap",
+        "type": "heatmap",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+        "targets": [
+          {
+            "expr": "sum(increase(otel_gateway_request_duration_milliseconds_bucket[5m])) by (le)",
+            "format": "heatmap",
+            "legendFormat": "{{ le }}"
+          }
+        ]
+      },
+      {
+        "title": "Top Errors by Route",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (http_route, http_status_code) (increase(otel_gateway_requests_total{http_status_code=~\"[45]..\"}[1h])))",
+            "format": "table",
+            "instant": true
+          }
+        ]
+      }
+    ]
+  }

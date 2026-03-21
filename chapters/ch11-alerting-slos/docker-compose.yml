@@ -1,0 +1,63 @@
+# docker-compose.yml — Chapter 11: Alerting & Service Level Objectives (SLOs)
+#
+# Builds on Chapter 10. Changes vs ch10:
+#   • GF_UNIFIED_ALERTING_ENABLED=true — enables Grafana's unified alerting engine
+#   • Alerting provisioning directory mounted (alerts, contact points, policies)
+#   • All other services unchanged from ch10.
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config", "/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    ports:
+      - "4317:4317"    # OTLP gRPC (your apps send here)
+      - "4318:4318"    # OTLP HTTP
+      - "8889:8889"    # Prometheus scrape endpoint (app metrics)
+      - "8888:8888"    # Collector internal metrics
+      - "13133:13133"  # Health check endpoint
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    ports:
+      - "16686:16686"  # Jaeger UI
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true      # local dev only — disable in production
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer    # local dev only — disable in production
+      - GF_UNIFIED_ALERTING_ENABLED=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      prometheus:
+        condition: service_started
+
+volumes:
+  grafana-data:

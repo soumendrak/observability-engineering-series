@@ -1,0 +1,18 @@
+# policies.yaml — Chapter 11: Alerting & SLOs
+#
+# Alert routing: determines which contact point receives each alert
+# based on labels (severity).
+#
+# Local dev: all alerts go to the dev-null email contact point.
+# Production: replace receiver names with slack-engineering / pagerduty-oncall.
+
+apiVersion: 1
+policies:
+  - orgId: 1
+    receiver: dev-null
+    # ── Production routing (uncomment when contact points are configured) ──
+    # routes:
+    #   - receiver: pagerduty-oncall
+    #     matchers:
+    #       - severity = critical
+    #     continue: true  # Also send to the default (Slack)

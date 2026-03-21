@@ -1,0 +1,46 @@
+# contactpoints.yaml — Chapter 11: Alerting & SLOs
+#
+# Defines where Grafana sends alert notifications.
+# For local dev, we use a webhook contact point that logs to stdout.
+# Replace with Slack/PagerDuty settings for production.
+#
+# Production example (uncomment and set env vars):
+#   Slack:     set SLACK_WEBHOOK_URL
+#   PagerDuty: set PAGERDUTY_KEY
+
+apiVersion: 1
+contactPoints:
+  # ── Local development: logs alerts to Grafana server stdout ──
+  - orgId: 1
+    name: dev-null
+    receivers:
+      - uid: dev-null
+        type: email
+        settings:
+          addresses: "dev@localhost"
+          singleEmail: true
+        disableResolveMessage: false
+
+  # ── Production Slack (uncomment & set SLACK_WEBHOOK_URL env var) ──
+  # - orgId: 1
+  #   name: slack-engineering
+  #   receivers:
+  #     - uid: slack-eng
+  #       type: slack
+  #       settings:
+  #         url: "${SLACK_WEBHOOK_URL}"
+  #         recipient: "#engineering-alerts"
+  #         title: '{{ template "default.title" . }}'
+  #         text: '{{ template "default.message" . }}'
+  #       disableResolveMessage: false
+
+  # ── Production PagerDuty (uncomment & set PAGERDUTY_KEY env var) ──
+  # - orgId: 1
+  #   name: pagerduty-oncall
+  #   receivers:
+  #     - uid: pd-oncall
+  #       type: pagerduty
+  #       settings:
+  #         integrationKey: "${PAGERDUTY_KEY}"
+  #         severity: '{{ .CommonLabels.severity }}'
+  #       disableResolveMessage: false

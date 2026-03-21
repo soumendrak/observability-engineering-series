@@ -1,0 +1,41 @@
+# test_alerts.yaml — Chapter 11: Alerting & SLOs
+#
+# Unit tests for Prometheus alert rules using `promtool test rules`.
+# Run with: promtool test rules test_alerts.yaml
+#
+# Tests synthetic time series to verify alerts fire (or don't fire)
+# under expected conditions.
+
+rule_files:
+  - prometheus-alert-rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # ─── Test 1: High error rate should fire ────────
+  - interval: 1m
+    input_series:
+      # Simulate 10% error rate (above the 5% threshold)
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+10x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+90x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+
+  # ─── Test 2: Low error rate should NOT fire ─────
+  - interval: 1m
+    input_series:
+      # Simulate 0.5% error rate (below the 5% threshold)
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+1x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+199x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HighErrorRate
+        exp_alerts: []  # Must not fire
