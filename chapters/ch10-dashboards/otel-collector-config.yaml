@@ -1,0 +1,104 @@
+# otel-collector-config.yaml — Chapter 10: Dashboards & the RED Method
+#
+# Identical to Chapter 9. Tail sampling + PII scrubbing pipeline.
+# The Collector feeds metrics to Prometheus, which Grafana queries.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          # Redact full LLM prompts — keep only "REDACTED" for privacy
+          - replace_pattern(attributes["llm.prompt"], ".*", "REDACTED")
+            where attributes["llm.prompt"] != nil
+
+          # Redact full LLM completions
+          - replace_pattern(attributes["llm.completion"], ".*", "REDACTED")
+            where attributes["llm.completion"] != nil
+
+          # Scrub email addresses from user queries
+          - replace_pattern(attributes["user.query"], "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[EMAIL_REDACTED]")
+            where attributes["user.query"] != nil
+
+          # Scrub SSN patterns (XXX-XX-XXXX) from user queries
+          - replace_pattern(attributes["user.query"], "\\d{3}-\\d{2}-\\d{4}", "[SSN_REDACTED]")
+            where attributes["user.query"] != nil
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: errors-policy
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+
+      - name: latency-policy
+        type: latency
+        latency:
+          threshold_ms: 2000
+
+      - name: probabilistic-policy
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 5
+
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  telemetry:
+    metrics:
+      level: detailed
+    logs:
+      level: info
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform, tail_sampling, batch]
+      exporters: [otlp/jaeger, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]

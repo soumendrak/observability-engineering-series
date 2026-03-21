@@ -1,0 +1,17 @@
+# dashboards.yaml — Chapter 10: Dashboards & the RED Method
+#
+# Tells Grafana to load dashboard JSON files from this directory.
+# Any .json file placed here is automatically imported on startup.
+
+apiVersion: 1
+
+providers:
+  - name: "default"
+    orgId: 1
+    folder: "Observability Series"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false
