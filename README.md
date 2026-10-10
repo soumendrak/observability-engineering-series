@@ -6,6 +6,7 @@ Code examples and practical implementations for the blog series **"Practical Obs
 
 - Python 3.13+
 - `uv` for dependency management
+- Docker with Docker Compose (chapters 3–11)
 
 ## Chapter 1: Structured Logging
 *Status: Complete*
@@ -129,3 +130,31 @@ Keeping 100% of error traces while sampling successes, and redacting sensitive d
     - GenAI-style `/ask` endpoint demonstrating PII in span attributes.
 
 For detailed usage instructions, please refer to the [Chapter 9 README](chapters/ch9-sampling-pii/README.md).
+
+## Chapter 10: Dashboards & the RED Method
+*Status: Complete*
+
+Building actionable Grafana dashboards using the RED method (Rate, Errors, Duration) for the API Gateway and Order Service.
+
+- **Location:** `chapters/ch10-dashboards/`
+- **Key Concepts:**
+    - The RED method: Rate, Errors, Duration (P50, P95, P99).
+    - Dashboard-as-code: version-controlled JSON auto-loaded by Grafana on startup.
+    - Data source provisioning via YAML (Prometheus + Jaeger).
+    - Inverted-pyramid layout: stat panels → time series → latency heatmap and top errors.
+
+For detailed usage instructions, please refer to the [Chapter 10 README](chapters/ch10-dashboards/README.md).
+
+## Chapter 11: Alerting & Service Level Objectives (SLOs)
+*Status: Complete*
+
+Defining SLIs and SLOs, configuring symptom-based alerts in Grafana, and building error budget burn rate alerts that page you before users notice.
+
+- **Location:** `chapters/ch11-alerting-slos/`
+- **Key Concepts:**
+    - 99% availability SLO with error budget tracking.
+    - Multi-window (1h + 5m) error budget burn rate alert at 14.4x.
+    - Severity-based routing: critical → PagerDuty, all → Slack.
+    - `promtool` unit tests for alert rules.
+
+For detailed usage instructions, please refer to the [Chapter 11 README](chapters/ch11-alerting-slos/README.md).
