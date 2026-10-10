@@ -121,7 +121,7 @@ The multi-window approach (1h + 5m) prevents false positives from brief spikes w
 
 ## Alert Routing
 
-By default (local dev), every alert routes to the `dev-null` contact point, so alerts show in the Grafana Alerting UI but nothing is sent. The production routing below is provided commented out in `grafana/provisioning/alerting/policies.yaml` and `contactpoints.yaml`; uncomment it to enable it.
+By default (local dev), every alert routes to the `dev-null` contact point (an email receiver addressed to `dev@localhost`), so alerts show in the Grafana Alerting UI and nothing reaches Slack or PagerDuty. The production routing below is provided commented out in `grafana/provisioning/alerting/policies.yaml` and `contactpoints.yaml`; uncomment it to enable it.
 
 | Severity | Contact Point (production, commented out) | Channel |
 |----------|--------------|---------|
