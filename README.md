@@ -154,7 +154,7 @@ Defining SLIs and SLOs, configuring symptom-based alerts in Grafana, and buildin
 - **Key Concepts:**
     - 99% availability SLO with error budget tracking.
     - Multi-window (1h + 5m) error budget burn rate alert at 14.4x.
-    - Severity-based routing: critical → PagerDuty, all → Slack.
+    - Severity-based routing template: local dev sends every alert to a dev-null contact point; production routing (critical → PagerDuty, all → Slack) is provided commented out in `policies.yaml`.
     - `promtool` unit tests for alert rules.
 
 For detailed usage instructions, please refer to the [Chapter 11 README](chapters/ch11-alerting-slos/README.md).
