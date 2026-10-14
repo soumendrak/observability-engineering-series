@@ -10,7 +10,7 @@ Define SLIs and SLOs for your services, configure symptom-based alerts in Grafan
 |--------|------------|------------|
 | Alerting | None — dashboards only | 4 provisioned alert rules (error rate, latency, traffic drop, burn rate) |
 | SLOs | Not defined | 99% availability SLO with error budget tracking |
-| Contact points | None | Slack + PagerDuty contact points (configurable) |
+| Contact points | None | `dev-null` email contact point active for local dev; Slack + PagerDuty contact points provided but commented out in `contactpoints.yaml` |
 | Routing | None | Severity-based routing template: local dev sends every alert to `dev-null`; production routing (critical → PagerDuty, all → Slack) is commented out in `policies.yaml` |
 | Testing | None | promtool unit tests for alert rules |
 | Grafana config | Dashboard provisioning | Added `GF_UNIFIED_ALERTING_ENABLED=true` + alerting provisioning |
@@ -150,7 +150,7 @@ To enable production routing:
 | Warning | Slack | #engineering-alerts |
 | Critical | Slack + PagerDuty | #engineering-alerts + on-call page |
 
-Configure by setting environment variables:
+After uncommenting, set:
 - `SLACK_WEBHOOK_URL` — Slack incoming webhook URL
 - `PAGERDUTY_KEY` — PagerDuty integration key
 
