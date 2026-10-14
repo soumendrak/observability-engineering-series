@@ -4,15 +4,20 @@
 # based on labels (severity).
 #
 # Local dev: all alerts go to the dev-null email contact point.
-# Production: replace receiver names with slack-engineering / pagerduty-oncall.
+# Production: follow "To enable production routing" in this chapter's README.md
+# (uncommenting the routes below is not enough on its own).
 
 apiVersion: 1
 policies:
   - orgId: 1
     receiver: dev-null
-    # ── Production routing (uncomment when contact points are configured) ──
+    # ── Production routing (see README; also change the root receiver above
+    #    from dev-null to slack-engineering) ──
     # routes:
     #   - receiver: pagerduty-oncall
     #     matchers:
     #       - severity = critical
-    #     continue: true  # Also send to the default (Slack)
+    #     continue: true  # keep evaluating the next sibling route
+    #   - receiver: slack-engineering
+    #     matchers:
+    #       - severity =~ "warning|critical"

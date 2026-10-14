@@ -1,7 +1,8 @@
 # contactpoints.yaml — Chapter 11: Alerting & SLOs
 #
 # Defines where Grafana sends alert notifications.
-# For local dev, we use a webhook contact point that logs to stdout.
+# For local dev, the only active contact point is dev-null, an email receiver
+# addressed to dev@localhost, so nothing reaches Slack or PagerDuty.
 # Replace with Slack/PagerDuty settings for production.
 #
 # Production example (uncomment and set env vars):
@@ -10,7 +11,7 @@
 
 apiVersion: 1
 contactPoints:
-  # ── Local development: logs alerts to Grafana server stdout ──
+  # ── Local development: email receiver to dev@localhost ──
   - orgId: 1
     name: dev-null
     receivers:

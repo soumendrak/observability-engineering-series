@@ -10,8 +10,8 @@ Define SLIs and SLOs for your services, configure symptom-based alerts in Grafan
 |--------|------------|------------|
 | Alerting | None — dashboards only | 4 provisioned alert rules (error rate, latency, traffic drop, burn rate) |
 | SLOs | Not defined | 99% availability SLO with error budget tracking |
-| Contact points | None | Slack + PagerDuty contact points (configurable) |
-| Routing | None | Severity-based routing (critical → PagerDuty, all → Slack) |
+| Contact points | None | `dev-null` email contact point active for local dev; Slack + PagerDuty contact points provided but commented out in `contactpoints.yaml` |
+| Routing | None | Severity-based routing template: local dev sends every alert to `dev-null`; production routing (critical → PagerDuty, all → Slack) is commented out in `policies.yaml` |
 | Testing | None | promtool unit tests for alert rules |
 | Grafana config | Dashboard provisioning | Added `GF_UNIFIED_ALERTING_ENABLED=true` + alerting provisioning |
 | Dashboard | RED dashboard | RED dashboard + error budget burn rate panel |
@@ -121,12 +121,36 @@ The multi-window approach (1h + 5m) prevents false positives from brief spikes w
 
 ## Alert Routing
 
-| Severity | Contact Point | Channel |
+By default (local dev), every alert routes to the `dev-null` contact point (an email receiver addressed to `dev@localhost`), so alerts show in the Grafana Alerting UI and nothing reaches Slack or PagerDuty. The production routing below is not active: the Slack and PagerDuty contact points are commented out in `grafana/provisioning/alerting/contactpoints.yaml`, and the root policy in `grafana/provisioning/alerting/policies.yaml` still uses `receiver: dev-null`. Uncommenting the `routes:` block in `policies.yaml` is **not** enough on its own. It sends critical alerts only to PagerDuty, and warnings still go to `dev-null`. In Grafana, `continue: true` moves on to the next sibling policy; it does not fall back to the parent's receiver.
+
+To enable production routing:
+
+1. In `contactpoints.yaml`, uncomment the `slack-engineering` and `pagerduty-oncall` contact points.
+2. In `policies.yaml`, replace the policy with the following. It changes the default receiver to `slack-engineering` and adds a Slack sibling route after the PagerDuty route, so critical alerts reach both:
+
+   ```yaml
+   apiVersion: 1
+   policies:
+     - orgId: 1
+       receiver: slack-engineering        # default: was dev-null
+       routes:
+         - receiver: pagerduty-oncall
+           matchers:
+             - severity = critical
+           continue: true                 # keep evaluating the next sibling
+         - receiver: slack-engineering
+           matchers:
+             - severity =~ "warning|critical"
+   ```
+
+3. Set the environment variables below and restart Grafana so it reloads provisioning.
+
+| Severity | Contact Point (production, commented out) | Channel |
 |----------|--------------|---------|
 | Warning | Slack | #engineering-alerts |
 | Critical | Slack + PagerDuty | #engineering-alerts + on-call page |
 
-Configure by setting environment variables:
+After uncommenting, set:
 - `SLACK_WEBHOOK_URL` — Slack incoming webhook URL
 - `PAGERDUTY_KEY` — PagerDuty integration key
 
