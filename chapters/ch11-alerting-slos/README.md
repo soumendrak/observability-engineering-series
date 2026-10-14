@@ -121,7 +121,29 @@ The multi-window approach (1h + 5m) prevents false positives from brief spikes w
 
 ## Alert Routing
 
-By default (local dev), every alert routes to the `dev-null` contact point (an email receiver addressed to `dev@localhost`), so alerts show in the Grafana Alerting UI and nothing reaches Slack or PagerDuty. The production routing below is provided commented out in `grafana/provisioning/alerting/policies.yaml` and `contactpoints.yaml`; uncomment it to enable it.
+By default (local dev), every alert routes to the `dev-null` contact point (an email receiver addressed to `dev@localhost`), so alerts show in the Grafana Alerting UI and nothing reaches Slack or PagerDuty. The production routing below is not active: the Slack and PagerDuty contact points are commented out in `grafana/provisioning/alerting/contactpoints.yaml`, and the root policy in `grafana/provisioning/alerting/policies.yaml` still uses `receiver: dev-null`. Uncommenting the `routes:` block in `policies.yaml` is **not** enough on its own. It sends critical alerts only to PagerDuty, and warnings still go to `dev-null`. In Grafana, `continue: true` moves on to the next sibling policy; it does not fall back to the parent's receiver.
+
+To enable production routing:
+
+1. In `contactpoints.yaml`, uncomment the `slack-engineering` and `pagerduty-oncall` contact points.
+2. In `policies.yaml`, replace the policy with the following. It changes the default receiver to `slack-engineering` and adds a Slack sibling route after the PagerDuty route, so critical alerts reach both:
+
+   ```yaml
+   apiVersion: 1
+   policies:
+     - orgId: 1
+       receiver: slack-engineering        # default: was dev-null
+       routes:
+         - receiver: pagerduty-oncall
+           matchers:
+             - severity = critical
+           continue: true                 # keep evaluating the next sibling
+         - receiver: slack-engineering
+           matchers:
+             - severity =~ "warning|critical"
+   ```
+
+3. Set the environment variables below and restart Grafana so it reloads provisioning.
 
 | Severity | Contact Point (production, commented out) | Channel |
 |----------|--------------|---------|
