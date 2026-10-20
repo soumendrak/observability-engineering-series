@@ -158,3 +158,7 @@ Defining SLIs and SLOs, configuring symptom-based alerts in Grafana, and buildin
     - `promtool` unit tests for alert rules.
 
 For detailed usage instructions, please refer to the [Chapter 11 README](chapters/ch11-alerting-slos/README.md).
+
+## Sponsor
+
+If this project helps you, consider [sponsoring my work on GitHub](https://github.com/sponsors/soumendrak). Your support helps fund maintenance, documentation, and continued development.
