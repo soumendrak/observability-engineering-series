@@ -43,6 +43,13 @@ jobs:
           enable-cache: false
       - run: uv sync --locked
       - run: uv run python -c "import sys; assert sys.version_info[:2] == (3, 13), sys.version"
+      - name: mypy
+        run: |
+          if grep -q '^\[tool.mypy\]' pyproject.toml; then
+            uv run mypy
+          else
+            echo "no mypy config in this chapter"
+          fi
       - name: pytest
         run: |
           if [ -d tests ]; then

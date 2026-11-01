@@ -1,38 +1,42 @@
-# logging_setup.py  (identical to Chapter 6 — no changes needed)
+from __future__ import annotations
+
+import json
 import sys
-from opentelemetry import trace
+from typing import TYPE_CHECKING
+
 from loguru import logger
+from opentelemetry import trace
+
+if TYPE_CHECKING:
+    from loguru import Logger, Message, Record
 
 
-def otel_patcher(record):
-    """Inject OTel context into every log record."""
+def otel_patcher(record: Record) -> None:
     span = trace.get_current_span()
     if span.is_recording():
         ctx = span.get_span_context()
         record["extra"]["trace_id"] = format(ctx.trace_id, "032x")
         record["extra"]["span_id"] = format(ctx.span_id, "016x")
-        record["extra"]["span_name"] = span.name
+        record["extra"]["span_name"] = getattr(span, "name", "")
     else:
         record["extra"]["trace_id"] = "00000000000000000000000000000000"
         record["extra"]["span_id"] = "0000000000000000"
         record["extra"]["span_name"] = ""
 
 
-def setup_logging(service_name: str):
-    """Configure Loguru for production with OTel correlation."""
+def setup_logging(service_name: str) -> Logger:
+    def json_sink(message: Message) -> None:
+        record = message.record
+        entry = {
+            "timestamp": record["time"].isoformat(timespec="milliseconds"),
+            "level": record["level"].name,
+            "service": service_name,
+            "message": record["message"],
+            **record["extra"],
+        }
+        sys.stdout.write(json.dumps(entry, default=str) + "\n")
+
     logger.remove()
     logger.configure(patcher=otel_patcher)
-
-    # JSON format for production
-    log_format = (
-        '{{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", '
-        '"level": "{level.name}", '
-        '"service": "' + service_name + '", '
-        '"message": "{message}", '
-        '"trace_id": "{extra[trace_id]}", '
-        '"span_id": "{extra[span_id]}", '
-        '"span_name": "{extra[span_name]}"}}'
-    )
-
-    logger.add(sys.stdout, format=log_format, level="INFO")
+    logger.add(json_sink, level="INFO")
     return logger

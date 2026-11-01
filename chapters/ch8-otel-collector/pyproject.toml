@@ -17,3 +17,18 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.45.2",
     "opentelemetry-exporter-otlp-proto-grpc>=1.45.2",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "--cov=logging_setup --cov-report=term-missing --cov-fail-under=100"
+
+[tool.mypy]
+strict = true
+files = ["logging_setup.py", "tests"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.0.0",
+]
