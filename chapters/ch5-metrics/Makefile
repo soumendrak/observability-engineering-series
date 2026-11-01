@@ -1,5 +1,7 @@
 # Chapter 5: Custom Metrics with OpenTelemetry
 
+export OTEL_SEMCONV_STABILITY_OPT_IN := http
+
 .PHONY: help run-order run-gateway run-request run-traffic infra-up infra-down
 
 help:
@@ -17,7 +19,7 @@ run-order:
 		--metrics_exporter none \
 		--exporter_otlp_endpoint http://localhost:4317 \
 		--service_name order-service \
-		uvicorn order_service:app --port 8001
+		uvicorn order_service:app --host 0.0.0.0 --port 8001
 
 run-gateway:
 	uv run opentelemetry-instrument \
@@ -25,7 +27,7 @@ run-gateway:
 		--metrics_exporter none \
 		--exporter_otlp_endpoint http://localhost:4317 \
 		--service_name api-gateway \
-		uvicorn api_gateway:app --port 8000
+		uvicorn api_gateway:app --host 0.0.0.0 --port 8000
 
 run-request:
 	curl -s http://localhost:8000/checkout | python -m json.tool
