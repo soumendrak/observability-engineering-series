@@ -31,6 +31,7 @@ files = ["api_gateway.py", "order_service.py", "tests"]
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.0",
     "mypy>=1.18",
     "pytest>=9.0.3",
     "pytest-cov>=7.0.0",
