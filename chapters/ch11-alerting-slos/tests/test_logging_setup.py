@@ -129,3 +129,14 @@ def test_non_json_extras_are_written_with_str(
     [entry] = read_lines(capsys)
     assert entry["placed_at"] == "2026-11-01 09:30:00+00:00"
     assert entry["amount"].startswith("<object object at 0x")
+
+
+def test_exception_flag_outside_except_adds_no_exception(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    log = setup_logging("test-service")
+    log.opt(exception=True).info("nothing was raised")
+    [entry] = read_lines(capsys)
+    assert entry["message"] == "nothing was raised"
+    assert entry["level"] == "INFO"
+    assert "exception" not in entry
