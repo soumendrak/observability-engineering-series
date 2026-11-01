@@ -14,11 +14,19 @@ services:
       - "4317:4317"   # OTLP gRPC (your apps send here)
       - "4318:4318"   # OTLP HTTP
       - "8889:8889"   # Prometheus scrape endpoint (app metrics)
+    depends_on:
+      jaeger:
+        condition: service_healthy
 
   jaeger:
     image: jaegertracing/jaeger:2.22.0
     ports:
       - "16686:16686" # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:13133/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   prometheus:
     image: prom/prometheus:v3.15.1
