@@ -82,6 +82,12 @@ service:
   telemetry:
     metrics:
       level: detailed              # Exposes Collector metrics at :8888/metrics
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
     logs:
       level: info                  # Change to debug for verbose startup output
 

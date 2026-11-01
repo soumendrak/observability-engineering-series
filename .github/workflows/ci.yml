@@ -97,6 +97,50 @@ jobs:
             fi
           done
 
+  grafana-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: chapters/ch11-alerting-slos
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - run: uv sync --locked
+      - name: boot ch11, send traffic, assert every Grafana alert rule has health ok
+        run: |
+          docker compose up -d --wait
+          nohup make run-order > order.log 2>&1 &
+          nohup make run-gateway > gateway.log 2>&1 &
+          until curl -sf -o /dev/null localhost:8000/health; do sleep 2; done
+          until curl -s 'localhost:9090/api/v1/query?query=otel_gateway_requests_total' | jq -e '.data.result | length > 0' > /dev/null; do
+            curl -s -o /dev/null localhost:8000/checkout
+            curl -s -o /dev/null localhost:8000/products/widget
+            sleep 2
+          done
+          t0=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          expected=$(grep -c '^      - uid:' grafana/provisioning/alerting/alerts.yaml)
+          echo "metrics in Prometheus at $t0, expecting $expected rules"
+          for _ in $(seq 60); do
+            curl -s -o /dev/null localhost:8000/checkout
+            rules=$(curl -s -u admin:admin localhost:3000/api/prometheus/grafana/api/v1/rules)
+            if echo "$rules" | jq -e --arg t0 "$t0" --argjson n "$expected" '[.data.groups[].rules[]] | length == $n and all(.lastEvaluation > $t0)' > /dev/null; then
+              break
+            fi
+            sleep 5
+          done
+          echo "$rules" | jq -r '.data.groups[].rules[] | [.name, .state, .health, .lastEvaluation, (.lastError // "")] | @tsv'
+          echo "$rules" | jq -e --arg t0 "$t0" --argjson n "$expected" '[.data.groups[].rules[]] | length == $n and all(.lastEvaluation > $t0 and .health == "ok")' > /dev/null
+      - name: logs
+        if: failure()
+        run: |
+          docker compose logs
+          cat order.log gateway.log
+
   otelcol-validate:
     runs-on: ubuntu-latest
     steps:

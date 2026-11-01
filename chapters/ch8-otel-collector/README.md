@@ -96,7 +96,7 @@ ch8-otel-collector/
 
 5. **Verify self-observability:**
    - Collector internal metrics: [http://localhost:8888/metrics](http://localhost:8888/metrics)
-   - In Prometheus: query `otelcol_exporter_sent_spans_total`
+   - In Prometheus: query `otelcol_exporter_sent_spans`
 
 6. **Tear down:**
    ```bash
@@ -142,21 +142,21 @@ otel_orders_created_total
 rate(otel_orders_errors_total[5m])
 
 # Request duration (histogram)
-histogram_quantile(0.95, rate(otel_gateway_request_duration_bucket[5m]))
+histogram_quantile(0.95, rate(otel_gateway_request_duration_milliseconds_bucket[5m]))
 ```
 
 For production self-observability (Collector internal metrics):
 
 ```promql
 # Spans received vs exported
-otelcol_receiver_accepted_spans_total
-otelcol_exporter_sent_spans_total
+otelcol_receiver_accepted_spans
+otelcol_exporter_sent_spans
 
 # Queue depth (growing = backend slower than ingestion)
 otelcol_exporter_queue_size
 
-# Export failures
-otelcol_exporter_send_failed_spans_total
+# Export failures (no series until the first failed export)
+otelcol_exporter_send_failed_spans
 ```
 
 ## Architecture

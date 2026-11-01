@@ -179,8 +179,8 @@ verify-prometheus:
 	@echo "  rate(otel_orders_errors_total[5m])"
 	@echo ""
 	@echo "Sampling metrics (Collector internal):"
-	@echo "  otelcol_receiver_accepted_spans_total"
-	@echo "  otelcol_exporter_sent_spans_total"
+	@echo "  otelcol_receiver_accepted_spans"
+	@echo "  otelcol_exporter_sent_spans"
 	@echo "  (sent << accepted = sampling is working)"
 
 verify-pii:
@@ -210,7 +210,7 @@ verify-sampling:
 		echo "No sampling log entries found. The tail_sampling processor works silently."
 	@echo ""
 	@echo "To verify sampling is working, compare span counts:"
-	@echo "  curl -s http://localhost:8888/metrics | grep otelcol_receiver_accepted_spans_total"
-	@echo "  curl -s http://localhost:8888/metrics | grep otelcol_exporter_sent_spans_total"
+	@echo "  curl -s http://localhost:8888/metrics | grep otelcol_receiver_accepted_spans"
+	@echo "  curl -s http://localhost:8888/metrics | grep otelcol_exporter_sent_spans"
 	@echo ""
 	@echo "If sent << accepted, tail sampling is dropping non-error, fast traces."

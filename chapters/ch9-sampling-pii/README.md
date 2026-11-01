@@ -128,8 +128,8 @@ otel_orders_created_total
 rate(otel_orders_errors_total[5m])
 
 # Sampling effect: compare receiver vs exporter span counts
-otelcol_receiver_accepted_spans_total
-otelcol_exporter_sent_spans_total
+otelcol_receiver_accepted_spans
+otelcol_exporter_sent_spans
 ```
 
 ## Architecture
