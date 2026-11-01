@@ -27,12 +27,17 @@ services:
       retries: 3
     depends_on:
       jaeger:
-        condition: service_started
+        condition: service_healthy
 
   jaeger:
     image: jaegertracing/jaeger:2.20.0
     ports:
       - "16686:16686"  # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:13133/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   prometheus:
     image: prom/prometheus:v3.15.1

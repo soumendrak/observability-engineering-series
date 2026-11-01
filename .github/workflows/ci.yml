@@ -53,7 +53,7 @@ jobs:
       - name: pytest
         run: |
           if [ -d tests ]; then
-            uv run pytest
+            uv run pytest -W error
           else
             echo "no tests in this chapter"
           fi
