@@ -27,7 +27,7 @@ services:
         condition: service_started
 
   jaeger:
-    image: jaegertracing/jaeger:2.22.0
+    image: jaegertracing/jaeger:2.20.0
     ports:
       - "16686:16686"  # Jaeger UI
 

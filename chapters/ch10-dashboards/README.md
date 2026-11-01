@@ -114,6 +114,8 @@ The dashboard JSON is version-controlled and auto-loaded by Grafana on startup. 
 ### Data Source Provisioning
 Prometheus and Jaeger data sources are configured via YAML — no clicking through the Grafana UI.
 
+Jaeger is pinned to 2.20.0 here and in chapter 11. Jaeger 2.21 removed the v1 HTTP query endpoints that Grafana 13.3's bundled Jaeger data source still calls, so newer Jaeger breaks Save & test and the service picker ([grafana-jaeger-datasource#87](https://github.com/grafana/grafana-jaeger-datasource/issues/87)).
+
 ## PromQL Examples
 
 ```promql
