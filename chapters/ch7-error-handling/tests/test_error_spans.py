@@ -8,6 +8,7 @@ from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
+from prometheus_client.openmetrics.exposition import CONTENT_TYPE_LATEST
 
 import order_service
 
@@ -41,6 +42,10 @@ async def db_ok(order: dict[str, Any]) -> dict[str, str]:
     return {"id": "ord-1"}
 
 
+async def db_read_timeout(product_id: str) -> dict[str, Any]:
+    raise order_service.DatabaseError(f"read timeout fetching product {product_id}")
+
+
 async def stripe_timeout(amount: float) -> dict[str, str]:
     raise ConnectionError("stripe API timeout")
 
@@ -67,3 +72,24 @@ def test_failed_payment_sets_error_type_on_client_and_parent(
     asyncio.run(order_service.create_order({"item": "widget", "qty": 1}))
     assert_failed_with(span_named("external.stripe.charge"), "ConnectionError")
     assert_failed_with(span_named("insert_order_record"), "ConnectionError")
+
+
+def test_cache_fallback_span_is_not_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(asyncio, "sleep", instant)
+    monkeypatch.setattr(order_service, "simulate_db_get_product", db_read_timeout)
+    product = asyncio.run(order_service.get_product("widget"))
+    assert product["source"] == "cache"
+    span = span_named("fetch_product")
+    assert span.status.status_code is StatusCode.UNSET
+    assert span.attributes is not None
+    assert "error.type" not in span.attributes
+    assert span.attributes["product.source"] == "cache"
+    assert [event.name for event in span.events] == ["exception", "cache_fallback"]
+
+
+def test_metrics_endpoint_renders_openmetrics() -> None:
+    response = order_service.metrics()
+    body = bytes(response.body)
+    assert response.media_type == CONTENT_TYPE_LATEST
+    assert b"# TYPE orders_processing_duration_milliseconds histogram" in body
+    assert body.endswith(b"# EOF\n")
