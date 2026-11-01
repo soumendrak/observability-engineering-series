@@ -35,6 +35,7 @@ services:
     image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--enable-feature=exemplar-storage"
     ports:
       - "9090:9090"
     volumes:
