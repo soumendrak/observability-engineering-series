@@ -50,6 +50,13 @@ jobs:
             echo "import ${f%.py}"
             uv run python -W error::DeprecationWarning -c "import importlib, sys; sys.path.insert(0, '.'); importlib.import_module(sys.argv[1])" "${f%.py}"
           done
+      - name: mypy
+        run: |
+          if grep -q '^\[tool.mypy\]' pyproject.toml; then
+            uv run mypy
+          else
+            echo "no mypy config in this chapter"
+          fi
       - name: pytest
         run: |
           if [ -d tests ]; then
