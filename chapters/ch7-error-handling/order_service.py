@@ -177,6 +177,7 @@ async def call_external_api(
     with tracer.start_as_current_span(
         f"external.{service_name}.{operation}",
         kind=trace.SpanKind.CLIENT,
+        record_exception=False,
     ) as span:
         span.set_attribute("external.service", service_name)
         span.set_attribute("external.operation", operation)
