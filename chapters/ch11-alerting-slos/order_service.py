@@ -8,6 +8,7 @@
 import asyncio
 import random
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastapi import FastAPI
@@ -72,18 +73,18 @@ llm_calls_total = meter.create_counter(
 # ──────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────
-def calculate_total(order: dict) -> float:
+def calculate_total(order: dict[str, Any]) -> float:
     """Very simple total calculator for demonstration purposes."""
     price_per_unit = {"widget": 24.99, "gadget": 49.99, "doohickey": 9.99}
-    item = order.get("item", "widget")
-    qty = order.get("qty", 1)
+    item: str = order.get("item", "widget")
+    qty: int = order.get("qty", 1)
     return round(price_per_unit.get(item, 24.99) * qty, 2)
 
 
 # ──────────────────────────────────────────────
 # Simulated external dependencies
 # ──────────────────────────────────────────────
-async def simulate_db_insert(order: dict) -> dict:
+async def simulate_db_insert(order: dict[str, Any]) -> dict[str, str]:
     """Simulate a DB insert that sometimes fails."""
     await asyncio.sleep(0.3 + random.uniform(0, 0.2))
     if random.random() < FAILURE_RATE:
@@ -91,7 +92,7 @@ async def simulate_db_insert(order: dict) -> dict:
     return {"id": f"ord-{random.randint(1000, 9999)}"}
 
 
-async def simulate_db_get_product(product_id: str) -> dict:
+async def simulate_db_get_product(product_id: str) -> dict[str, Any]:
     """Simulate a DB read that sometimes fails."""
     await asyncio.sleep(0.1 + random.uniform(0, 0.1))
     if random.random() < FAILURE_RATE:
@@ -99,13 +100,13 @@ async def simulate_db_get_product(product_id: str) -> dict:
     return {"product_id": product_id, "name": "Super Widget", "stock": 42}
 
 
-async def simulate_cache_get_product(product_id: str) -> dict:
+async def simulate_cache_get_product(product_id: str) -> dict[str, Any]:
     """Simulate a cache lookup — always succeeds, much faster."""
     await asyncio.sleep(0.01)
     return {"product_id": product_id, "name": "Super Widget (cached)", "stock": 42}
 
 
-async def simulate_payment_charge(amount: float) -> dict:
+async def simulate_payment_charge(amount: float) -> dict[str, str]:
     """Simulate calling a payment gateway (Stripe-like)."""
     await asyncio.sleep(0.2 + random.uniform(0, 0.1))
     if random.random() < FAILURE_RATE * 0.5:
@@ -120,7 +121,7 @@ async def simulate_health_dependency() -> None:
         raise RuntimeError("health check failed: redis unreachable")
 
 
-async def simulate_llm_generation(prompt: str) -> dict:
+async def simulate_llm_generation(prompt: str) -> dict[str, Any]:
     """Simulate an LLM call (GPT-style) that returns a completion."""
     await asyncio.sleep(0.5 + random.uniform(0, 0.5))
     if random.random() < 0.1:
@@ -145,7 +146,7 @@ async def simulate_llm_generation(prompt: str) -> dict:
 async def call_external_api(
     service_name: str,
     operation: str,
-    call_func,
+    call_func: Callable[..., Awaitable[Any]],
     *args: Any,
     **kwargs: Any,
 ) -> Any:
@@ -153,6 +154,7 @@ async def call_external_api(
     with tracer.start_as_current_span(
         f"external.{service_name}.{operation}",
         kind=trace.SpanKind.CLIENT,
+        record_exception=False,
     ) as span:
         span.set_attribute("external.service", service_name)
         span.set_attribute("external.operation", operation)
@@ -182,8 +184,8 @@ app = FastAPI()
 # ──────────────────────────────────────────────
 # Pattern 2: Catch and Record (/orders)
 # ──────────────────────────────────────────────
-@app.post("/orders")
-async def create_order(order: dict):
+@app.post("/orders", response_model=None)
+async def create_order(order: dict[str, Any]) -> dict[str, Any] | JSONResponse:
     start = time.perf_counter()
     item = order.get("item", "unknown")
     qty = order.get("qty", 0)
@@ -285,7 +287,7 @@ async def create_order(order: dict):
 # Pattern 3: Catch and Continue (/products/{product_id})
 # ──────────────────────────────────────────────
 @app.get("/products/{product_id}")
-async def get_product(product_id: str):
+async def get_product(product_id: str) -> dict[str, Any]:
     with tracer.start_as_current_span("fetch_product") as span:
         span.set_attribute("product.id", product_id)
 
@@ -316,8 +318,8 @@ async def get_product(product_id: str):
 # ──────────────────────────────────────────────
 # GenAI simulation: /ask
 # ──────────────────────────────────────────────
-@app.post("/ask")
-async def ask_question(body: dict):
+@app.post("/ask", response_model=None)
+async def ask_question(body: dict[str, Any]) -> dict[str, Any] | JSONResponse:
     """GenAI-style endpoint: user asks a question, LLM responds."""
     user_query = body.get(
         "question",
@@ -373,6 +375,6 @@ async def ask_question(body: dict):
 # Pattern 1: Let It Propagate (/health)
 # ──────────────────────────────────────────────
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     await simulate_health_dependency()
     return {"status": "ok", "service": "order-service"}

@@ -106,8 +106,9 @@ POST /orders [ERROR]
               external.service: "stripe"
               external.operation: "charge"
               external.status: "error"
-              external.error_type: "ConnectionError"
+              error.type: "ConnectionError"
               external.duration_ms: 214.3
+              events: exception (exactly one)
 ```
 
 ## Key Concepts
@@ -115,6 +116,7 @@ POST /orders [ERROR]
 | Concept | API | Effect in Jaeger |
 |---------|-----|------------------|
 | Record exception | `span.record_exception(e)` | Adds an `exception` Event with type, message, and stack trace |
+| Record once, then re-raise | `tracer.start_as_current_span(..., record_exception=False)` + `span.record_exception(e)` | One `exception` Event; with the default `record_exception=True` the SDK adds a second one when the re-raised error leaves the `with` block |
 | Mark span failed | `span.set_status(StatusCode.ERROR, msg)` | Span turns **red** in the waterfall |
 | Record without failing | `span.record_exception(e)` (no `set_status`) | Exception visible in Events, span stays **green** |
 | Recovery event | `span.add_event("cache_fallback", {...})` | Named event visible in Jaeger's span detail |

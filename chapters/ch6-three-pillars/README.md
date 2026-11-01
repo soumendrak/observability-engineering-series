@@ -8,7 +8,7 @@ This chapter connects the three telemetry pillars (Logs, Traces, Metrics) so you
 |--------|-----------|-----------|
 | Logging | stdlib `logging` | Loguru with OTel patcher (`trace_id`, `span_id`, `span_name`) |
 | Log format | Plain text | Structured JSON with trace correlation |
-| Metric exemplars | Not attached | `context.get_current()` passed to `.record()` |
+| Metric exemplars | Not attached | `prometheus_client` `Histogram.observe(..., exemplar={"trace_id": ..., "span_id": ...})` |
 | Shared module | None | `logging_setup.py` (reusable across services) |
 | Pivot workflow | Not possible | Metrics → Traces → Logs via `trace_id` |
 

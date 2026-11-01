@@ -1,5 +1,7 @@
 # Chapter 10: Dashboards & the RED Method
 
+export OTEL_SEMCONV_STABILITY_OPT_IN := http
+
 .PHONY: help \
         infra-up infra-down logs \
         run-order run-gateway \
