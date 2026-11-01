@@ -75,3 +75,184 @@ tests:
             exp_annotations:
               summary: "P99 latency above 3 seconds"
               runbook: "https://wiki.internal/runbooks/high-latency"
+
+  # ─── Test 4: 5.5% error rate fires at 6m ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+11x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+189x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Error rate is above 5%"
+              runbook: "https://wiki.internal/runbooks/high-error-rate"
+
+  # ─── Test 5: 4.5% error rate never fires ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+9x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+191x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: HighErrorRate
+        exp_alerts: []
+
+  # ─── Test 6: P99 of about 2881ms never fires ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="1000"}'
+        values: '0+0x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="2900"}'
+        values: '0+10x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="+Inf"}'
+        values: '0+10x15'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: HighLatency
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: HighLatency
+        exp_alerts: []
+
+  # ─── Test 7: P99 of about 3198ms fires at 11m ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="3000"}'
+        values: '0+0x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="3200"}'
+        values: '0+10x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="+Inf"}'
+        values: '0+10x15'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HighLatency
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: HighLatency
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "P99 latency above 3 seconds"
+              runbook: "https://wiki.internal/runbooks/high-latency"
+
+  # ─── Test 8: Traffic stops at 120m: pending at 127m, firing at 128m ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+100x120 12000+0x29'
+    alert_rule_test:
+      - eval_time: 127m
+        alertname: TrafficDrop
+        exp_alerts: []
+      - eval_time: 128m
+        alertname: TrafficDrop
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Request rate dropped by more than 50%"
+              runbook: "https://wiki.internal/runbooks/traffic-drop"
+
+
+  # ─── Test 9: Traffic settles at 40% of an hour ago and fires ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+100x60 6040+40x29'
+    alert_rule_test:
+      - eval_time: 80m
+        alertname: TrafficDrop
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Request rate dropped by more than 50%"
+              runbook: "https://wiki.internal/runbooks/traffic-drop"
+
+
+  # ─── Test 10: Traffic settles at 60% of an hour ago never fires ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+100x60 6060+60x29'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: TrafficDrop
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: TrafficDrop
+        exp_alerts: []
+
+  # ─── Test 11: 20% errors burn 20x on both windows: pending at 2m, firing at 3m ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+20x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+80x10'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Error budget burning at critical rate (>14.4x)"
+              runbook: "https://wiki.internal/runbooks/error-budget-burn"
+
+  # ─── Test 12: 12% errors burn 12x on both windows and never fire ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+12x70'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+88x70'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts: []
+      - eval_time: 70m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts: []
+
+  # ─── Test 13: 1h window above 14.4x, 5m window at 12x: no alert ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+30x60 1812+12x20'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+70x60 4288+88x20'
+    alert_rule_test:
+      - eval_time: 75m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts: []
+
+  # ─── Test 14: 5m window at 30x, 1h window still below 14.4x: no alert ─────
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_requests_total{http_status_code="500"}'
+        values: '0+12x60 750+30x10'
+      - series: 'otel_gateway_requests_total{http_status_code="200"}'
+        values: '0+88x60 5350+70x10'
+    alert_rule_test:
+      - eval_time: 67m
+        alertname: ErrorBudgetBurnCritical
+        exp_alerts: []
