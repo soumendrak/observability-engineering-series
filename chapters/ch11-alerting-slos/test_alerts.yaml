@@ -12,7 +12,9 @@ rule_files:
 evaluation_interval: 1m
 
 tests:
-  # ─── Test 1: High error rate should fire ────────
+  # ─── Test 1: High error rate: pending at 5m, firing at 6m ────────
+  # rate() first returns a value at 1m, and `for: 5m` holds the alert
+  # in pending until 6m.
   - interval: 1m
     input_series:
       # Simulate 10% error rate (above the 5% threshold)
@@ -21,7 +23,10 @@ tests:
       - series: 'otel_gateway_requests_total{http_status_code="200"}'
         values: '0+90x10'
     alert_rule_test:
-      - eval_time: 10m
+      - eval_time: 5m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 6m
         alertname: HighErrorRate
         exp_alerts:
           - exp_labels:
@@ -30,7 +35,7 @@ tests:
               summary: "Error rate is above 5%"
               runbook: "https://wiki.internal/runbooks/high-error-rate"
 
-  # ─── Test 2: Low error rate should NOT fire ─────
+  # ─── Test 2: Low error rate never fires ─────
   - interval: 1m
     input_series:
       # Simulate 0.5% error rate (below the 5% threshold)
@@ -39,6 +44,34 @@ tests:
       - series: 'otel_gateway_requests_total{http_status_code="200"}'
         values: '0+199x10'
     alert_rule_test:
+      - eval_time: 6m
+        alertname: HighErrorRate
+        exp_alerts: []
       - eval_time: 10m
         alertname: HighErrorRate
-        exp_alerts: []  # Must not fire
+        exp_alerts: []
+
+  # ─── Test 3: High P99 latency: pending at 10m, firing at 11m ────────
+  # Every request lands between 1000ms and 5000ms, so P99 is about 4960ms.
+  # rate() first returns a value at 1m, and `for: 10m` holds the alert
+  # in pending until 11m.
+  - interval: 1m
+    input_series:
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="1000"}'
+        values: '0+0x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="5000"}'
+        values: '0+10x15'
+      - series: 'otel_gateway_request_duration_milliseconds_bucket{le="+Inf"}'
+        values: '0+10x15'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HighLatency
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: HighLatency
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "P99 latency above 3 seconds"
+              runbook: "https://wiki.internal/runbooks/high-latency"
