@@ -58,7 +58,7 @@ validate-config:
 	@echo "Validating Collector config..."
 	docker run --rm \
 		-v $$(pwd)/otel-collector-config.yaml:/etc/otel/config.yaml \
-		otel/opentelemetry-collector-contrib:0.120.0 \
+		otel/opentelemetry-collector-contrib:0.164.0 \
 		validate --config /etc/otel/config.yaml
 
 # ──────────────────────────────────────────────

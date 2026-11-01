@@ -61,6 +61,14 @@ jobs:
           find chapters -name docker-compose.yml | sort | while read -r f; do
             echo "== $f"
             docker compose -f "$f" config --quiet
+            if docker compose -f "$f" config --images | grep -E ':latest$|^[^:]+$'; then
+              echo "unpinned image in $f"
+              exit 1
+            fi
+            if docker compose -f "$f" config --images | grep -E ':latest$|^[^:]+$'; then
+              echo "unpinned image in $f"
+              exit 1
+            fi
           done
 
   promtool:

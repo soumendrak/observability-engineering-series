@@ -26,7 +26,7 @@ ch8-otel-collector/
 ├── Makefile                          # All commands for both MVP and Production
 ├── mvp/
 │   ├── otel-collector-config.yaml    # Minimum viable Collector config
-│   ├── docker-compose.yml            # Collector + Jaeger + Prometheus (:latest)
+│   ├── docker-compose.yml            # Collector + Jaeger + Prometheus (pinned)
 │   └── prometheus.yml                # Scrapes Collector at :8889
 └── production/
     ├── otel-collector-config.yaml    # Hardened: health check, filters, queues
@@ -107,7 +107,6 @@ ch8-otel-collector/
 
 | Feature | MVP | Production |
 |---------|-----|------------|
-| Image tags | `:latest` | Pinned (`0.120.0`, `1.62.0`, `v2.51.0`) |
 | `debug` exporter | `verbosity: detailed` | `verbosity: basic` (or remove) |
 | `batch.timeout` | `5s` (demo-friendly) | `200ms` (near-real-time) |
 | Health check | None | `:13133` with Docker healthcheck |

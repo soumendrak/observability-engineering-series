@@ -10,7 +10,7 @@ Build actionable Grafana dashboards using the RED method (Rate, Errors, Duration
 | Aspect | Chapter 9 | Chapter 10 |
 |--------|-----------|------------|
 | Visualization | None — raw metrics in Prometheus | Grafana dashboards with RED panels |
-| Infrastructure | Collector + Jaeger + Prometheus | Added Grafana 12.3.0 with auto-provisioning |
+| Infrastructure | Collector + Jaeger + Prometheus | Added Grafana 13.3.0 with auto-provisioning |
 | Data sources | Manual Prometheus queries | Provisioned Prometheus + Jaeger datasources |
 | Dashboards | None | RED dashboard JSON (dashboard-as-code) |
 | App code | Sampling & PII scrubbing | Identical — no application changes |
