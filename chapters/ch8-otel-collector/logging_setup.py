@@ -35,6 +35,7 @@ def setup_logging(service_name: str) -> Logger:
             **record["extra"],
         }
         sys.stdout.write(json.dumps(entry, default=str) + "\n")
+        sys.stdout.flush()
 
     logger.remove()
     logger.configure(patcher=otel_patcher)

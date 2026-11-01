@@ -1,4 +1,6 @@
+import io
 import json
+import sys
 from typing import Any
 
 import pytest
@@ -56,3 +58,20 @@ def test_below_info_is_dropped(capsys: pytest.CaptureFixture[str]) -> None:
     log = setup_logging("test-service")
     log.debug("hidden")
     assert capsys.readouterr().out == ""
+
+
+class FlushRecorder(io.StringIO):
+    def __init__(self) -> None:
+        super().__init__()
+        self.flushed_text: list[str] = []
+
+    def flush(self) -> None:
+        self.flushed_text.append(self.getvalue())
+
+
+def test_each_entry_is_flushed_when_written(monkeypatch: pytest.MonkeyPatch) -> None:
+    stream = FlushRecorder()
+    monkeypatch.setattr(sys, "stdout", stream)
+    log = setup_logging("test-service")
+    log.info("first")
+    assert json.loads(stream.flushed_text[-1])["message"] == "first"
