@@ -74,6 +74,20 @@ def test_failed_payment_sets_error_type_on_client_and_parent(
     assert_failed_with(span_named("insert_order_record"), "ConnectionError")
 
 
+def test_failed_payment_records_one_exception_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(asyncio, "sleep", instant)
+    monkeypatch.setattr(order_service, "simulate_db_insert", db_ok)
+    monkeypatch.setattr(order_service, "simulate_payment_charge", stripe_timeout)
+    asyncio.run(order_service.create_order({"item": "widget", "qty": 1}))
+    stripe = span_named("external.stripe.charge")
+    assert [event.name for event in stripe.events] == ["exception"]
+    [event] = stripe.events
+    assert event.attributes is not None
+    assert event.attributes["exception.type"] == "ConnectionError"
+
+
 def test_cache_fallback_span_is_not_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(asyncio, "sleep", instant)
     monkeypatch.setattr(order_service, "simulate_db_get_product", db_read_timeout)
