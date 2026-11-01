@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  list-chapters:
+    runs-on: ubuntu-latest
+    outputs:
+      chapters: ${{ steps.list.outputs.chapters }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: list
+        run: echo "chapters=$(find chapters -mindepth 2 -maxdepth 2 -name pyproject.toml -printf '%h\n' | sort | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+
+  python:
+    needs: list-chapters
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chapter: ${{ fromJSON(needs.list-chapters.outputs.chapters) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.chapter }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - run: uv sync --locked
+      - run: uv run python -c "import sys; assert sys.version_info[:2] == (3, 13), sys.version"
+      - name: pytest
+        run: |
+          if [ -d tests ]; then
+            uv run pytest
+          else
+            echo "no tests in this chapter"
+          fi
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          find chapters -name docker-compose.yml | sort | while read -r f; do
+            echo "== $f"
+            docker compose -f "$f" config --quiet
+          done
+
+  promtool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: promtool check config, check rules, test rules
+        run: |
+          find chapters -name prometheus.yml | sort | while read -r f; do
+            dir=$(dirname "$f")
+            image=$(docker compose -f "$dir/docker-compose.yml" config --images | grep '^prom/prometheus:')
+            echo "== $f with $image"
+            docker run --rm -v "$PWD/$dir:/w:ro" -w /w --entrypoint promtool "$image" check config --syntax-only prometheus.yml
+            if [ -f "$dir/test_alerts.yaml" ]; then
+              docker run --rm -v "$PWD/$dir:/w:ro" -w /w --entrypoint promtool "$image" check rules prometheus-alert-rules.yml
+              docker run --rm -v "$PWD/$dir:/w:ro" -w /w --entrypoint promtool "$image" test rules test_alerts.yaml
+            fi
+          done
+
+  otelcol-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          find chapters -name otel-collector-config.yaml | sort | while read -r f; do
+            dir=$(dirname "$f")
+            image=$(docker compose -f "$dir/docker-compose.yml" config --images | grep '^otel/opentelemetry-collector-contrib:')
+            echo "== $f with $image"
+            docker run --rm -v "$PWD/$f:/etc/otelcol/config.yaml:ro" "$image" validate --config /etc/otelcol/config.yaml
+          done

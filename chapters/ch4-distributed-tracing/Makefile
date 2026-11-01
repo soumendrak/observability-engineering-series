@@ -60,7 +60,7 @@ coverage:
 	uv run --group dev pytest --cov=. --cov-report=term-missing tests
 
 infra-up:
-	docker-compose up -d
+	docker compose up -d
 
 infra-down:
-	docker-compose down
+	docker compose down

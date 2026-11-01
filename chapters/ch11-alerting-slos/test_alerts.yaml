@@ -21,11 +21,14 @@ tests:
       - series: 'otel_gateway_requests_total{http_status_code="200"}'
         values: '0+90x10'
     alert_rule_test:
-      - eval_time: 5m
+      - eval_time: 10m
         alertname: HighErrorRate
         exp_alerts:
           - exp_labels:
               severity: critical
+            exp_annotations:
+              summary: "Error rate is above 5%"
+              runbook: "https://wiki.internal/runbooks/high-error-rate"
 
   # ─── Test 2: Low error rate should NOT fire ─────
   - interval: 1m
@@ -36,6 +39,6 @@ tests:
       - series: 'otel_gateway_requests_total{http_status_code="200"}'
         values: '0+199x10'
     alert_rule_test:
-      - eval_time: 5m
+      - eval_time: 10m
         alertname: HighErrorRate
         exp_alerts: []  # Must not fire

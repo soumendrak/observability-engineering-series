@@ -3,7 +3,7 @@ name = "ch7-error-handling"
 version = "0.1.0"
 description = "Error Handling & Semantic Instrumentation: making every failure visible in your observability stack"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "loguru>=0.7.3",
     "fastapi>=0.111.0",

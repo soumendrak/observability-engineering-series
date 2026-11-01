@@ -9,7 +9,7 @@ This chapter demonstrates the transition from standard text-based logging to str
 
 ## Usage
 
-Make sure you are in the root of the repository or inside this directory. The commands below assume you are in the repository root.
+Each chapter is its own `uv` project. Run the commands below from this directory (`chapters/ch1-structured-logging/`).
 
 ### Prerequisites
 
@@ -26,7 +26,7 @@ uv sync
 Run `initial.py` to see standard text logging:
 
 ```bash
-uv run chapters/ch1-structured-logging/initial.py
+uv run initial.py
 ```
 
 Output:
@@ -39,7 +39,7 @@ Output:
 Run `final.py` to see structured logging. By default, it may run in development mode (pretty-printed) or production mode depending on your configuration.
 
 ```bash
-uv run chapters/ch1-structured-logging/final.py
+uv run final.py
 ```
 
 ### Environment Variables
@@ -50,14 +50,14 @@ The `final.py` script uses the `ENV` environment variable to toggle between huma
 Best for local debugging.
 
 ```bash
-ENV=DEV uv run chapters/ch1-structured-logging/final.py
+ENV=DEV uv run final.py
 ```
 
 **Production Mode (JSON)**
 Best for shipping logs to observability backends (Datadog, Loki, etc.).
 
 ```bash
-ENV=PROD uv run chapters/ch1-structured-logging/final.py
+ENV=PROD uv run final.py
 ```
 
 Output (formatted):

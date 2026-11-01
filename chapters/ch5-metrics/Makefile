@@ -36,7 +36,7 @@ run-traffic:
 	@echo "Done. Check Prometheus at http://localhost:9090"
 
 infra-up:
-	docker-compose up -d
+	docker compose up -d
 
 infra-down:
-	docker-compose down
+	docker compose down

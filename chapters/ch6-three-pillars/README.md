@@ -68,8 +68,8 @@ If the UI control is still missing, append `&g0.show_exemplars=1` to the graph U
 If exemplars still do not render in the UI, recreate Prometheus with the pinned image used in this chapter:
 
 ```bash
-docker-compose down
-docker-compose up -d --force-recreate prometheus
+docker compose down
+docker compose up -d --force-recreate prometheus
 ```
 
 Then compute p99 latency for `/checkout`:
