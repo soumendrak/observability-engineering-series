@@ -3,4 +3,5 @@ __pycache__
 .env
 *.log
 *.DS_Store
-*.pyc.coverage
+*.pyc
+.coverage
