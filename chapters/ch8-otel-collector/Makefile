@@ -1,5 +1,7 @@
 # Chapter 8: OTel Collector Pipeline
 
+export OTEL_SEMCONV_STABILITY_OPT_IN := http
+
 .PHONY: help \
         mvp-infra-up mvp-infra-down mvp-logs \
         prod-infra-up prod-infra-down prod-logs prod-validate \

@@ -1,5 +1,7 @@
 # Chapter 3: OpenTelemetry
 
+export OTEL_SEMCONV_STABILITY_OPT_IN := http
+
 .PHONY: help run-zero run-medium run-custom infra-up infra-down
 
 help:

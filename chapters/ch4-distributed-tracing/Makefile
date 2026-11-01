@@ -1,5 +1,7 @@
 # Chapter 4: Distributed Tracing
 
+export OTEL_SEMCONV_STABILITY_OPT_IN := http
+
 .PHONY: help run-order run-order-manual run-order-custom run-gateway run-gateway-manual run-request infra-up infra-down test coverage
 
 help:
