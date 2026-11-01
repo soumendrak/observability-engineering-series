@@ -43,6 +43,13 @@ jobs:
           enable-cache: false
       - run: uv sync --locked
       - run: uv run python -c "import sys; assert sys.version_info[:2] == (3, 13), sys.version"
+      - name: compile and import every module
+        run: |
+          uv run python -m compileall -q -x '/\.venv/' .
+          for f in $(git ls-files '*.py' ':!:tests/*'); do
+            echo "import ${f%.py}"
+            uv run python -W error::DeprecationWarning -c "import importlib, sys; sys.path.insert(0, '.'); importlib.import_module(sys.argv[1])" "${f%.py}"
+          done
       - name: pytest
         run: |
           if [ -d tests ]; then
