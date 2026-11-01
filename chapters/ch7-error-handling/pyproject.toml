@@ -35,7 +35,3 @@ dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7.0.0",
 ]
-
-[[tool.mypy.overrides]]
-module = ["order_service"]
-ignore_errors = true
