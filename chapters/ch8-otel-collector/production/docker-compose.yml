@@ -9,7 +9,7 @@
 
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.120.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config", "/etc/otelcol/config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
@@ -28,15 +28,20 @@ services:
       retries: 3
     depends_on:
       jaeger:
-        condition: service_started
+        condition: service_healthy
 
   jaeger:
-    image: jaegertracing/all-in-one:1.62.0
+    image: jaegertracing/jaeger:2.22.0
     ports:
       - "16686:16686"  # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:13133/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   prometheus:
-    image: prom/prometheus:v2.51.0
+    image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
     ports:

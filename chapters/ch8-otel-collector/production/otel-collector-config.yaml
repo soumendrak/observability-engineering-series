@@ -53,7 +53,7 @@ processors:
     timeout: 200ms
 
 exporters:
-  otlp/jaeger:
+  otlp_grpc/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
@@ -82,6 +82,12 @@ service:
   telemetry:
     metrics:
       level: detailed              # Exposes Collector metrics at :8888/metrics
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
     logs:
       level: info                  # Change to debug for verbose startup output
 
@@ -89,7 +95,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, filter/health_checks, attributes/tag_env, batch]
-      exporters: [otlp/jaeger]
+      exporters: [otlp_grpc/jaeger]
 
     metrics:
       receivers: [otlp]

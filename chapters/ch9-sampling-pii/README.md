@@ -10,7 +10,7 @@ Keep 100 % of error traces while sampling successes, and redact sensitive data l
 | PII handling | None — attributes pass through | Transform processor scrubs `llm.prompt`, `llm.completion`, emails, SSNs |
 | Collector config | Pass-through pipeline | `transform` → `tail_sampling` → `batch` processor chain |
 | App code | Standard checkout/product endpoints | Added `/ask` GenAI-style endpoint with `llm.*` and `user.query` attributes |
-| Collector image | `contrib:latest` (MVP) | `contrib:0.120.0` (pinned, includes `tailsamplingprocessor` + `transformprocessor`) |
+| Collector image | `contrib:0.164.0` (MVP) | `contrib:0.164.0` (pinned, includes `tailsamplingprocessor` + `transformprocessor`) |
 
 **Same base**: Two-service architecture (API Gateway + Order Service), error handling patterns from ch7, Loguru + OTel JSON correlation, Collector pipeline from ch8.
 
@@ -128,8 +128,8 @@ otel_orders_created_total
 rate(otel_orders_errors_total[5m])
 
 # Sampling effect: compare receiver vs exporter span counts
-otelcol_receiver_accepted_spans_total
-otelcol_exporter_sent_spans_total
+otelcol_receiver_accepted_spans
+otelcol_exporter_sent_spans
 ```
 
 ## Architecture

@@ -8,13 +8,19 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: PBFA97CFB590B2093
     access: proxy
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    jsonData:
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: PC9A941E8F2E49454
 
   - name: Jaeger
     type: jaeger
+    uid: PC9A941E8F2E49454
     access: proxy
     url: http://jaeger:16686
     editable: true

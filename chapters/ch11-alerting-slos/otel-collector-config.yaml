@@ -52,7 +52,7 @@ processors:
     timeout: 5s
 
 exporters:
-  otlp/jaeger:
+  otlp_grpc/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
@@ -60,6 +60,7 @@ exporters:
   prometheus:
     endpoint: 0.0.0.0:8889
     namespace: otel
+    enable_open_metrics: true
 
   debug:
     verbosity: basic
@@ -74,6 +75,12 @@ service:
   telemetry:
     metrics:
       level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
     logs:
       level: info
 
@@ -81,7 +88,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, transform, tail_sampling, batch]
-      exporters: [otlp/jaeger, debug]
+      exporters: [otlp_grpc/jaeger, debug]
 
     metrics:
       receivers: [otlp]

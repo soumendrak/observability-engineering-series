@@ -6,7 +6,7 @@
 
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config", "/etc/otelcol/config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
@@ -14,14 +14,22 @@ services:
       - "4317:4317"   # OTLP gRPC (your apps send here)
       - "4318:4318"   # OTLP HTTP
       - "8889:8889"   # Prometheus scrape endpoint (app metrics)
+    depends_on:
+      jaeger:
+        condition: service_healthy
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:2.22.0
     ports:
       - "16686:16686" # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:13133/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
     ports:

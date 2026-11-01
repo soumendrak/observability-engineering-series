@@ -10,7 +10,7 @@ Build actionable Grafana dashboards using the RED method (Rate, Errors, Duration
 | Aspect | Chapter 9 | Chapter 10 |
 |--------|-----------|------------|
 | Visualization | None — raw metrics in Prometheus | Grafana dashboards with RED panels |
-| Infrastructure | Collector + Jaeger + Prometheus | Added Grafana 12.3.0 with auto-provisioning |
+| Infrastructure | Collector + Jaeger + Prometheus | Added Grafana 13.3.0 with auto-provisioning |
 | Data sources | Manual Prometheus queries | Provisioned Prometheus + Jaeger datasources |
 | Dashboards | None | RED dashboard JSON (dashboard-as-code) |
 | App code | Sampling & PII scrubbing | Identical — no application changes |
@@ -113,6 +113,8 @@ The dashboard JSON is version-controlled and auto-loaded by Grafana on startup. 
 
 ### Data Source Provisioning
 Prometheus and Jaeger data sources are configured via YAML — no clicking through the Grafana UI.
+
+Jaeger is pinned to 2.20.0 here and in chapter 11. Jaeger 2.21 removed the v1 HTTP query endpoints that Grafana 13.3's bundled Jaeger data source still calls, so newer Jaeger breaks Save & test and the service picker ([grafana-jaeger-datasource#87](https://github.com/grafana/grafana-jaeger-datasource/issues/87)).
 
 ## PromQL Examples
 

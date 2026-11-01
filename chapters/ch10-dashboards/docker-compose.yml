@@ -4,13 +4,13 @@
 # and dashboard JSON files. All other services unchanged.
 #
 # New:
-#   • Grafana 12.3.0 with auto-provisioned Prometheus + Jaeger data sources
+#   • Grafana 13.3.0 with auto-provisioned Prometheus + Jaeger data sources
 #   • RED dashboard JSON loaded on startup
 #   • grafana-data volume for persistence across restarts
 
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.120.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config", "/etc/otelcol/config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
@@ -27,17 +27,23 @@ services:
       retries: 3
     depends_on:
       jaeger:
-        condition: service_started
+        condition: service_healthy
 
   jaeger:
-    image: jaegertracing/all-in-one:1.62.0
+    image: jaegertracing/jaeger:2.20.0
     ports:
       - "16686:16686"  # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:13133/status"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   prometheus:
-    image: prom/prometheus:v2.51.0
+    image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--enable-feature=exemplar-storage"
     ports:
       - "9090:9090"
     volumes:
@@ -47,7 +53,7 @@ services:
         condition: service_healthy
 
   grafana:
-    image: grafana/grafana:12.3.0
+    image: grafana/grafana:13.3.0
     ports:
       - "3000:3000"
     environment:

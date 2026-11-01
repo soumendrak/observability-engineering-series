@@ -48,6 +48,8 @@ ch11-alerting-slos/
             └── red-dashboard.json # RED dashboard + burn rate panel
 ```
 
+Jaeger is pinned to 2.20.0 for the same Grafana data source reason given in chapter 10's README.
+
 ## Quick Start
 
 1. **Install dependencies:**
