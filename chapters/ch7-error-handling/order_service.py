@@ -188,7 +188,7 @@ async def call_external_api(
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             span.set_attribute("external.status", "error")
-            span.set_attribute("external.error_type", type(e).__name__)
+            span.set_attribute("error.type", type(e).__name__)
             raise
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
@@ -252,6 +252,7 @@ async def create_order(order: dict):
             span.record_exception(e)
             # 2. Mark the span as failed in the UI (red in Jaeger)
             span.set_status(StatusCode.ERROR, str(e))
+            span.set_attribute("error.type", type(e).__name__)
             # 3. Increment the error metric
             orders_errors.add(1, {
                 "error.type": type(e).__name__,
@@ -289,6 +290,7 @@ async def create_order(order: dict):
             # Here we record it on the parent span too, and mark the order failed.
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, f"Payment failed: {e}")
+            span.set_attribute("error.type", type(e).__name__)
             orders_errors.add(1, {
                 "error.type": type(e).__name__,
                 "operation": "payment_charge",

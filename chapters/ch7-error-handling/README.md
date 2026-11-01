@@ -106,7 +106,7 @@ POST /orders [ERROR]
               external.service: "stripe"
               external.operation: "charge"
               external.status: "error"
-              external.error_type: "ConnectionError"
+              error.type: "ConnectionError"
               external.duration_ms: 214.3
 ```
 
