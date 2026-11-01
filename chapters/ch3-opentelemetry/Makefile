@@ -23,7 +23,7 @@ run-custom:
 	uv run 03_custom_code.py
 
 infra-up:
-	docker-compose up -d
+	docker compose up -d
 
 infra-down:
-	docker-compose down
+	docker compose down

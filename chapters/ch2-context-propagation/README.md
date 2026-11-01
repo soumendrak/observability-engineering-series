@@ -9,7 +9,7 @@ This chapter demonstrates how to solve the "missing trace ID" problem in asyncio
 
 ## Usage
 
-Make sure you are in the root of the repository or inside this directory. The commands below assume you are in the repository root.
+Each chapter is its own `uv` project. Run the commands below from this directory (`chapters/ch2-context-propagation/`).
 
 ### Prerequisites
 
@@ -26,7 +26,7 @@ uv sync
 Run `initial.py` to see the problem with global state:
 
 ```bash
-uv run chapters/ch2-context-propagation/initial.py
+uv run initial.py
 ```
 
 Output (notice the `CONTEXT MISMATCH` errors):
@@ -39,7 +39,7 @@ Output (notice the `CONTEXT MISMATCH` errors):
 Run `final.py` to see proper context handling:
 
 ```bash
-uv run chapters/ch2-context-propagation/final.py
+uv run final.py
 ```
 
 ### Environment Variables
@@ -50,14 +50,14 @@ The `final.py` script uses the `ENV` environment variable to toggle between huma
 Best for local debugging.
 
 ```bash
-ENV=DEV uv run chapters/ch2-context-propagation/final.py
+ENV=DEV uv run final.py
 ```
 
 **Production Mode (JSON)**
 Best for shipping logs to observability backends (Datadog, Loki, etc.).
 
 ```bash
-ENV=PROD uv run chapters/ch2-context-propagation/final.py
+ENV=PROD uv run final.py
 ```
 
 Output (formatted):

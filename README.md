@@ -8,6 +8,15 @@ Code examples and practical implementations for the blog series **"Practical Obs
 - `uv` for dependency management
 - Docker with Docker Compose (chapters 3–11)
 
+## Getting Started
+
+There is no project at the repository root. Each chapter is its own `uv` project with its own `pyproject.toml`, `uv.lock` and `.python-version` (3.13), so install and run from inside the chapter:
+
+```bash
+cd chapters/ch4-distributed-tracing
+uv sync
+```
+
 ## Chapter 1: Structured Logging
 *Status: Complete*
 

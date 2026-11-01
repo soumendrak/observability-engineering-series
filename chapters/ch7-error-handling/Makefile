@@ -55,7 +55,7 @@ run-error-traffic:
 	@echo "  rate(orders_errors_total[5m])"
 
 infra-up:
-	docker-compose up -d
+	docker compose up -d
 
 infra-down:
-	docker-compose down
+	docker compose down
