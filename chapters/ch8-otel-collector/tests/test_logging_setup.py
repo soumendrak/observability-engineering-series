@@ -1,6 +1,7 @@
 import io
 import json
 import sys
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -75,3 +76,56 @@ def test_each_entry_is_flushed_when_written(monkeypatch: pytest.MonkeyPatch) -> 
     log = setup_logging("test-service")
     log.info("first")
     assert json.loads(stream.flushed_text[-1])["message"] == "first"
+
+
+def test_extras_cannot_overwrite_reserved_keys(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    log = setup_logging("test-service")
+    log.info(
+        "real message",
+        timestamp="fake-time",
+        level="DEBUG",
+        service="other-service",
+        message="fake message",
+        exception="fake exception",
+        order_id="ord-1",
+    )
+    [entry] = read_lines(capsys)
+    assert list(entry)[:4] == ["timestamp", "level", "service", "message"]
+    assert entry["timestamp"] != "fake-time"
+    assert entry["level"] == "INFO"
+    assert entry["service"] == "test-service"
+    assert entry["message"] == "real message"
+    assert "exception" not in entry
+    assert entry["order_id"] == "ord-1"
+
+
+def test_exception_is_serialised_with_traceback(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    log = setup_logging("test-service")
+    try:
+        raise ValueError("card declined")
+    except ValueError:
+        log.exception("payment failed", exception="fake exception")
+    [entry] = read_lines(capsys)
+    assert entry["level"] == "ERROR"
+    assert entry["exception"]["type"] == "ValueError"
+    assert entry["exception"]["value"] == "card declined"
+    assert entry["exception"]["traceback"].startswith(
+        "Traceback (most recent call last):"
+    )
+    assert 'raise ValueError("card declined")' in entry["exception"]["traceback"]
+    assert entry["exception"]["traceback"].endswith("ValueError: card declined\n")
+
+
+def test_non_json_extras_are_written_with_str(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    log = setup_logging("test-service")
+    placed_at = datetime(2026, 11, 1, 9, 30, tzinfo=UTC)
+    log.info("order placed", placed_at=placed_at, amount=object())
+    [entry] = read_lines(capsys)
+    assert entry["placed_at"] == "2026-11-01 09:30:00+00:00"
+    assert entry["amount"].startswith("<object object at 0x")

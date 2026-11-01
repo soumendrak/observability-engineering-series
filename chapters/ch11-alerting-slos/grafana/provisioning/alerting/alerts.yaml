@@ -170,7 +170,7 @@ groups:
       # meaning the 30-day error budget will be exhausted in ~2 days.
       - uid: error-budget-burn
         title: "Error Budget Burn Rate Critical"
-        condition: D
+        condition: E
         data:
           # Long window burn rate (1 hour)
           - refId: A
@@ -216,9 +216,19 @@ groups:
               to: 0
             datasourceUid: __expr__
             model:
-              type: math
-              expression: "$B > 14.4 && $C > 14.4"
+              type: reduce
+              expression: C
+              reducer: last
               refId: D
+          - refId: E
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: "$B > 14.4 && $D > 14.4"
+              refId: E
         for: 2m
         labels:
           severity: critical
